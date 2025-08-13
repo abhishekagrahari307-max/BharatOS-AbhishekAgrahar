@@ -1,0 +1,19 @@
+BharatOS-AbhishekAgrahari/
+├── .github/
+│   └── workflows/
+│       └── build.yml
+├── core/
+│   ├── yoga_auth.py
+│   ├── hindi_nlp/
+│   └── security/
+│       ├── tpm_setup.sh
+│       └── zero_trust.sh
+├── themes/
+├── scripts/
+│   ├── install.sh
+│   └── deploy.sh
+├── docs/
+│   ├── hindi/
+│   └── english/
+├── LICENSE
+└── README.md
