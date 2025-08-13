@@ -1,47 +1,54 @@
-name: BharatOS Build Pipeline
+name: BharatOS CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   release:
-    types: [ created ]
+    types: [created]
 
 jobs:
   build-iso:
-    runs-on: ubuntu-latest
-    container:
-      image: cubic:latest
-      options: --privileged -v /dev:/dev
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      packages: write
       
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Setup Build Environment
       run: |
         sudo apt update
-        sudo apt install -y git python3-pip tpm2-tools sbctl ffmpeg \
-          libopencv-dev libx11-dev jq
-        
+        sudo apt install -y python3-pip tpm2-tools sbctl ffmpeg \
+          libopencv-dev libx11-dev jq cubic
+
     - name: Install Python dependencies
       run: pip install mediapipe opencv-python vosk indic-nlp-library
-      
+
+    - name: Setup Security
+      env:
+        TAILSCALE_KEY: ${{ secrets.TOKEN }}
+        TPM_SECRET: ${{ secrets.TOKEN }}
+      run: |
+        sudo tailscale up --authkey=$TAILSCALE_KEY
+        sudo tpm2_changeauth -o owner:$TPM_SECRET
+
     - name: Build ISO
       run: |
-        # Clone Cubic project
-        git clone https://github.com/BharatOS-AbhishekAgrahari/cubic-config
-        
-        # Copy BharatOS files to Cubic project
-        cp -r core cubic-config/
-        cp -r scripts cubic-config/
-        
-        # Build ISO using Cubic
-        cubic cubic-config
-        echo "BUILD_COMPLETE=true" >> $GITHUB_ENV
-        
+        cubic_dir="bharatos-build-$(date +%s)"
+        mkdir $cubic_dir
+        cubic --script scripts/install.sh $cubic_dir
+        mv $cubic_dir/*.iso BharatOS-AbhishekAgrahari.iso
+
     - name: Upload Artifact
-      if: env.BUILD_COMPLETE == 'true'
       uses: actions/upload-artifact@v3
       with:
         name: bharatos-iso
-        path: cubic-config/*.iso
+        path: BharatOS-AbhishekAgrahari.iso
+
+    - name: Publish Release
+      if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: BharatOS-AbhishekAgrahari.iso
