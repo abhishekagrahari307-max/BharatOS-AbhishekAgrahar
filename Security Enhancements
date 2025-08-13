@@ -1,0 +1,5 @@
+# core/security/tpm_boot.py
+import tpm2_pytss
+with tpm2_pytss.ESAPI() as ctx:
+    policy = ctx.policy_secret(tpm2_pytss.TPM2_RH_ENDORSEMENT)
+    # Add BharatOS-specific boot measurements
