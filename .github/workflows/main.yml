@@ -1,0 +1,47 @@
+name: BharatOS Build Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  release:
+    types: [ created ]
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+    container:
+      image: cubic:latest
+      options: --privileged -v /dev:/dev
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Build Environment
+      run: |
+        sudo apt update
+        sudo apt install -y git python3-pip tpm2-tools sbctl ffmpeg \
+          libopencv-dev libx11-dev jq
+        
+    - name: Install Python dependencies
+      run: pip install mediapipe opencv-python vosk indic-nlp-library
+      
+    - name: Build ISO
+      run: |
+        # Clone Cubic project
+        git clone https://github.com/BharatOS-AbhishekAgrahari/cubic-config
+        
+        # Copy BharatOS files to Cubic project
+        cp -r core cubic-config/
+        cp -r scripts cubic-config/
+        
+        # Build ISO using Cubic
+        cubic cubic-config
+        echo "BUILD_COMPLETE=true" >> $GITHUB_ENV
+        
+    - name: Upload Artifact
+      if: env.BUILD_COMPLETE == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: bharatos-iso
+        path: cubic-config/*.iso
